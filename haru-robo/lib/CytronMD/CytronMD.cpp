@@ -1,20 +1,22 @@
-#include "Arduino.h"
 #include "CytronMD.h"
 
-CytronMD::CytronMD(byte Pwm, byte Dir) {
+#include "Arduino.h"
+
+CytronMD::CytronMD(byte Pwm, byte Dir, byte Ch) {
   pwm = Pwm;
   dir = Dir;
+  ch = Ch;
   pinMode(dir, OUTPUT);
-  ledcSetup(0, 10000, 7);  // 10kHz、7bit
-  ledcAttachPin(pwm, 0);
+  ledcSetup(ch, 10000, 7);  // 10kHz、7bit
+  ledcAttachPin(pwm, ch);
 }
 
-void CytronMD::motor(char speed) {
-  //-128〜127で速度と方向を指定
+void CytronMD::motor(int speed) {
+  //-127〜127で速度と方向を指定
   if (speed < 0) {
     digitalWrite(dir, 0);
   } else {
     digitalWrite(dir, 1);
   }
-  ledcWrite(0, abs(speed));
+  ledcWrite(ch, abs(speed));
 }

@@ -4,37 +4,45 @@
 #include "PS4Controller.h"
 #define data_length 4
 byte controler_data[data_length];
-#define pwm_1 1  // pin指定
-#define pwm_2 1  // pin指定
-#define pwm_3 1  // pin指定
-#define pwm_4 1  // pin指定
-#define dir_1 2  // pin指定
-#define dir_2 2  // pin指定
-#define dir_3 2  // pin指定
-#define dir_4 2  // pin指定
-CytronMD motor_1 = CytronMD(pwm_1, dir_1);
-CytronMD motor_2 = CytronMD(pwm_2, dir_2);
-CytronMD motor_3 = CytronMD(pwm_3, dir_3);
-CytronMD motor_4 = CytronMD(pwm_4, dir_4);
-byte arr[8] = {8, 7, 6, 5, 4, 3, 2, 1};
+#define pwm_1 33  // pin指定
+#define pwm_2 26  // pin指定
+#define pwm_3 14  // pin指定
+#define pwm_4 12  // pin指定
+#define dir_1 32  // pin指定
+#define dir_2 25  // pin指定
+#define dir_3 27  // pin指定
+#define dir_4 13  // pin指定
+CytronMD motor_1 = CytronMD(pwm_1, dir_1, 1);
+CytronMD motor_2 = CytronMD(pwm_2, dir_2, 2);
+CytronMD motor_3 = CytronMD(pwm_3, dir_3, 3);
+CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
 
 void show_data(double, double, int, int, int, int);
-void motor_control(char, char, char);
+void motor_control(int, int, int);
 
 void setup() {
   Serial.begin(115200);  // デバック用
-  Serial2.begin(115200, SERIAL_8N1, 16, 17);
-  while (!Serial2)
-    ;
-  PS4.begin("24:62:AB:FB:15:1A");
+  // Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  // while (!Serial2)
+  //   ;
+  // PS4.begin("24:62:AB:FB:15:1A");
 }
 
 void loop() {
-  while (Serial2.available()) {
-    // String str = Serial2.readStringUntil('\n');
-    Serial2.println("world\n");
-    // Serial.printf("%s\n", str);
-  }
+  motor_control(-16, 0, 0);
+  delay(1000);
+  motor_control(0, 16, 0);
+  delay(1000);
+  motor_control(16, 0, 0);
+  delay(1000);
+  motor_control(0, -16, 0);
+  delay(1000);
+
+  // while (Serial2.available()) {
+  // String str = Serial2.readStringUntil('\n');
+  // Serial2.println("world\n");
+  // Serial.printf("%s\n", str);
+  // }
 
   // if (PS4.isConnected()) {
   //   // controler_data[0] = PS4.Circle();
@@ -52,7 +60,7 @@ void loop() {
   // }
 }
 
-void motor_control(char LY, char LX, char R_X) {
+void motor_control(int LY, int LX, int R_X) {
   double rad = atan2(LY, LX);
   double len = sqrt(LX * LX + LY * LY);
   int m1_speed = (-1 * cos(rad + PI / 4) * len);
@@ -63,31 +71,32 @@ void motor_control(char LY, char LX, char R_X) {
 
   int motor_speed[4] = {//-128~127の範囲でない可能性あり
                         m1_speed, m2_speed, m3_speed, m4_speed};
-  char turn = R_X;
-  char turn_step = 0;
-  if (turn > 0)
-    turn_step = 1;
-  else
-    turn_step = -1;
-  bool escape_flag = 0;
-  while (1) {
-    for (byte i = 0; i < 4; i++) {
-      if (abs(motor_speed[i]) >= 127) {
-        escape_flag = 1;
-        break;
+  int turn = R_X;
+  int turn_step = 0;
+  if (turn != 0) {
+    if (turn > 0)
+      turn_step = 1;
+    else
+      turn_step = -1;
+    bool escape_flag = 0;
+    while (1) {
+      if (turn == 0) break;
+      for (byte i = 0; i < 4; i++) {
+        if (abs(motor_speed[i]) >= 127) {
+          escape_flag = 1;
+          break;
+        }
+        motor_speed[i] -= turn_step;
       }
-      motor_speed[i] -= turn_step;
+      if (escape_flag) break;
+      m1_speed = motor_speed[0];
+      m2_speed = motor_speed[1];
+      m3_speed = motor_speed[2];
+      m4_speed = motor_speed[3];
+      turn -= turn_step;
     }
-    if (escape_flag) break;
-    m1_speed = motor_speed[0];
-    m2_speed = motor_speed[1];
-    m3_speed = motor_speed[2];
-    m4_speed = motor_speed[3];
-    turn -= turn_step;
-    if (turn == 0) break;
+    show_data(rad, len, m1_speed, m2_speed, m3_speed, m4_speed);
   }
-
-  show_data(rad, len, m1_speed, m2_speed, m3_speed, m4_speed);
 
   motor_1.motor(m1_speed);
   motor_2.motor(m2_speed);
