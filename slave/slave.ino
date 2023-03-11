@@ -100,3 +100,47 @@ void motor_control(int LY, int LX, int R_X) {
   motor_3.motor(m3_speed);
   motor_4.motor(m4_speed);
 }
+bool data_send(byte *data) {
+  int state = 1;
+  byte timeout_count = 10;
+  while (state != 3) {
+    Serial.flush();
+    Serial.write(state);
+    Serial.write(data, data_len);
+    while (!Serial_hd.available())
+      ;
+    state = 3;  //ok
+    timeout_count--;
+    for (int i = 0; i < data_len; i++) {
+      if (data[i] != Serial_hd.read()) {
+        state = 2;  //re
+        while (Serial_hd.available()) Serial_hd.read();
+        break;
+      }
+    }
+    if (state == 3) return 1;
+    if (timeout_count == 0) return 0;
+  }
+}
+
+byte *data_receive() {
+  int state = 1;
+  byte timeout_count = 10;
+  byte data[data_len];
+
+  while (state != 3) {
+    state = Serial_hd.read();
+    Serial.printf("received(%d) : ",state);
+    for (int i = 0; i < data_len; i++) {
+      data[i] = Serial_hd.read();
+      Serial.printf("%d : ",data[i]);
+      Serial_hd.write(data[i]);
+    };
+    Serial.println();
+
+    state = Serial_hd.read();
+    timeout_count--;
+    if (state == 3) return data;
+    if (timeout_count == 0) return NULL;
+  }
+}
