@@ -1,6 +1,5 @@
 #include <Arduino.h>
 
-#include "BluetoothSerial.h"
 #include "CytronMD.h"
 
 HardwareSerial Serial_hd(2);
@@ -30,7 +29,7 @@ bool switch_state[8];
 
 void setup() {
   Serial.begin(115200);  // デバック用
-  Serial_hd.begin(115200);
+  Serial_hd.begin(9600);
   for (int i = 0; i < 8; i++) {
     pinMode(state_pin[i], INPUT_PULLUP);
   }
@@ -39,13 +38,16 @@ void setup() {
 void loop() {
   if (Serial_hd.available()) {
     String str = Serial_hd.readStringUntil('\n');
-    Serial.printf("%s\n", str);
+    Serial.printf("receive : %s\n", str);
     Serial_hd.println("hello\n");
   } else {
-    Serial.printf("connection status=%d\n", Serial_hd.available());
-    get_switch_state();
+    Serial.println("message sent");
+    Serial_hd.println("hello\n");
+    delay(1000);
+//    Serial.printf("connection status=%d\n", Serial_hd.available());
+//    get_switch_state();
   }
-  delay(500);
+//  delay(500);
 }
 
 void get_switch_state() {
