@@ -19,28 +19,60 @@ CytronMD motor_1 = CytronMD(pwm_1, dir_1, 1);
 CytronMD motor_2 = CytronMD(pwm_2, dir_2, 2);
 CytronMD motor_3 = CytronMD(pwm_3, dir_3, 3);
 CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
-#define servo_1 0
-#define servo_2 0
-#define bulve_1 0
-#define bulve_2 0
+#define servo_1 18
+#define servo_2 19
+#define bulve_1 23
+#define bulve_2 2
+#define buzzer_pin 5
+#define switch_pin 22
+
+#define data_len 16
 
 void motor_control(int, int, int);
+bool data_send(byte *);
+byte *data_receive();
 bool motor_direction[4] = {
   0, 0, 0, 0
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
+
+
+void send_demo() {
+  byte serial_data[data_len];
+  for (int i = 0; i < data_len; i++) {
+    serial_data[i] = i + 10;
+  }
+  bool result = data_send(serial_data);
+  if (result) Serial.println("Send success!!!");
+  else Serial.println("failed");
+  delay(100);
+}
+void receive_demo() {
+  byte *rev_data = data_receive();
+  if (rev_data == NULL) {
+    // Serial.println("communication error");
+  } else {
+    Serial.println("success");
+    digitalWrite(buzzer_pin, rev_data[15]);
+  }
+  delay(100);
+}
 
 void setup() {
   Serial.begin(115200);  // デバック用
   Serial_hd.begin(115200);
   PS4.begin(MAC_string);
+  pinMode(buzzer_pin, OUTPUT);
 }
 
 void loop() {
-  Serial.println("exe");
+  receive_demo();
+  return;
+
+
   while (Serial_hd.available()) {
     String str = Serial_hd.readStringUntil('\n');
     Serial_hd.println("world\n");
-    Serial.printf("%s\n", str);
+    Serial.printf("received : %s\n", str);
   }
 
   if (PS4.isConnected()) {
@@ -60,7 +92,6 @@ void loop() {
     PS4.setLed(PS4.R2Value(), 100, 100);
     PS4.sendToController();
   }
-  delay(500);
 }
 
 void motor_control(int LY, int LX, int R_X) {
@@ -103,4 +134,72 @@ void motor_control(int LY, int LX, int R_X) {
   motor_2.motor(m2_speed);
   motor_3.motor(m3_speed);
   motor_4.motor(m4_speed);
+}
+
+bool data_send(byte *data) {
+  int state = 1;
+  byte timeout_count = 10;
+  while (state != 3) {
+    while (Serial_hd.available()) Serial_hd.read();
+    // Serial.printf("sending data(%d) = ", state);
+    // for (int i = 0; i < data_len; i++) {
+    //   Serial.printf("%d : ", data[i]);
+    // }
+    // Serial.println();
+    Serial_hd.write(state);
+    Serial_hd.write(data, data_len);
+    // Serial.println("response waiting");
+    byte wait_timeout_count = 30;
+    while (!Serial_hd.available()) {
+      // Serial.print(".");
+      delay(100);
+      wait_timeout_count--;
+      if (wait_timeout_count == 0) {
+        // Serial.println("send failed(non-response)");
+        return 0;
+      }
+    }
+    // Serial.println();
+    state = 3;  //ok
+    timeout_count--;
+    // Serial.print("response : ");
+    for (int i = 0; i < data_len; i++) {
+      byte res = Serial_hd.read();
+      // Serial.printf("%d : ", res);
+      if (data[i] != res) {
+        // Serial.println("data is not matched");
+        state = 2;  //re
+        while (Serial_hd.available()) Serial_hd.read();
+        break;
+      }
+    }
+    Serial_hd.write(state);
+    if (state == 3) return 1;
+    if (timeout_count == 0) return 0;
+    // Serial.println("send failed");
+  }
+}
+
+byte *data_receive() {
+  if (Serial_hd.available() == 0) return NULL;
+  int state = 1;
+  byte timeout_count = 10;
+  static byte data[data_len];
+
+  while (state != 3) {
+    state = Serial_hd.read();
+    Serial.printf("received(%d) : ", state);
+    for (int i = 0; i < data_len; i++) {
+      data[i] = Serial_hd.read();
+      Serial.printf("%d : ", data[i]);
+      Serial_hd.write(data[i]);
+    };
+    Serial.println();
+    while (!Serial_hd.available())
+      ;
+    state = Serial_hd.read();
+    timeout_count--;
+    if (state == 3) return data;
+    if (timeout_count == 0) return NULL;
+  }
 }
