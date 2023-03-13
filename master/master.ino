@@ -2,7 +2,10 @@
 
 #include "CytronMD.h"
 #include "PS4Controller.h"
+#include <ESP32Servo.h>
 HardwareSerial Serial_hd(2);
+Servo servo1;
+Servo servo2;
 
 #define MAC_string "24:62:AB:FB:15:1A"
 #define data_length 4
@@ -27,65 +30,57 @@ CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
 #define switch_pin 22
 
 #define data_len 16
+#define minUs 500
+#define maxUs 2400
+#define servo_hz 50
+
 
 void motor_control(int, int, int);
 bool data_send(byte *);
 byte *data_receive();
+void send_demo();
+void receive_demo();
+void servo_init();
+
 bool motor_direction[4] = {
   0, 0, 0, 0
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
 
 
-void send_demo() {
-  byte serial_data[data_len];
-  for (int i = 0; i < data_len; i++) {
-    serial_data[i] = i + 10;
-  }
-  bool result = data_send(serial_data);
-  if (result) Serial.println("Send success!!!");
-  else Serial.println("failed");
-  delay(100);
-}
-void receive_demo() {
-  byte *rev_data = data_receive();
-  if (rev_data == NULL) {
-    // Serial.println("communication error");
-  } else {
-    Serial.println("success");
-    digitalWrite(buzzer_pin, rev_data[15]);
-  }
-  delay(100);
-}
 
 void setup() {
   Serial.begin(115200);  // デバック用
   Serial_hd.begin(115200);
   PS4.begin(MAC_string);
   pinMode(buzzer_pin, OUTPUT);
+  servo_init();
 }
 
 void loop() {
-  receive_demo();
-  return;
-
-
-  while (Serial_hd.available()) {
-    String str = Serial_hd.readStringUntil('\n');
-    Serial_hd.println("world\n");
-    Serial.printf("received : %s\n", str);
-  }
+  //  receive_demo();
+  //  return;
 
   if (PS4.isConnected()) {
-    // controler_data[0] = PS4.Circle();
-    // controler_data[1] = PS4.Cross();
-    // controler_data[2] = PS4.Triangle();
-    // controler_data[3] = PS4.Square();
-    // for (int i = 0; i < 4; i++) {
-    //   Serial.printf("%d ", controler_data[i]);
-    // }
-    // Serial.println();
+    controler_data[0] = PS4.Circle();
+    controler_data[1] = PS4.Cross();
+    controler_data[2] = PS4.Triangle();
+    controler_data[3] = PS4.Square();
+    for (int i = 0; i < 4; i++) {
+      Serial.printf("%d ", controler_data[i]);
+    }
+    Serial.println();
 
-    // motor_control(PS4.LStickY(), PS4.LStickX(), PS4.RStickX());
+
+    if (controler_data[0]) {
+      servo1.write(135);
+      servo2.write(135);
+      delay(750);
+    }
+    servo1.write(0);
+    servo2.write(0);
+
+
+    motor_control(PS4.LStickY(), PS4.LStickX(), PS4.RStickX());
 
     int val = PS4.L2Value();
     PS4.setRumble(val, val);
