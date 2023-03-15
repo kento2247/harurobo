@@ -5,9 +5,8 @@ bool data_send(byte *data) {
     while (Serial_hd.available()) Serial_hd.read();  //いらないデータを破棄
     Serial_hd.write(state);
     Serial_hd.write(data, data_len);
-    byte wait_timeout_count = 100;
+    byte wait_timeout_count = 255;
     while (!Serial_hd.available()) {
-      delay(10);
       wait_timeout_count--;
       if (wait_timeout_count == 0) return 0;
     }
@@ -47,7 +46,14 @@ byte *data_receive() {
     }
     state = Serial_hd.read();
     resend_count--;
-    if (state == 3) return data;
+    if (state == 3) {
+      Serial.print("rev data=");
+      for (byte i = 0; i < data_len; i++) {
+        Serial.printf("%d:", data[i]);
+      }
+      Serial.println();
+      return data;
+    }
     if (timeout_count == 0) return NULL;
   }
 }
