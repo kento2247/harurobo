@@ -1,15 +1,15 @@
-void set_motor_dir() {
-  byte *rev_data = data_receive();
-  if (rev_data != NULL) {
-    if (rev_data[0] == 255) {
-      byte val = rev_data[data_len - 1];
-      for (int i = 0; i < 4; i++) {
-        motor_direction[3 - i] = (val) % 2;
-        val /= 2;
-      }
-    }
-  }
-}
+// void set_motor_dir() {
+//   byte *rev_data = data_receive();
+//   if (rev_data != NULL) {
+//     if (rev_data[0] == 255) {
+//       byte val = rev_data[data_len - 1];
+//       for (int i = 0; i < 4; i++) {
+//         motor_direction[3 - i] = (val) % 2;
+//         val /= 2;
+//       }
+//     }
+//   }
+// }
 
 
 void motor_control(int LY, int LX, int R_X) {

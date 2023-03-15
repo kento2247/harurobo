@@ -1,18 +1,11 @@
-void set_motor_dir() {
-  // byte *rev_data = data_receive();
-  byte rev_data[8] = {
-    255, 0, 0, 0, 0, 0, 0, 15
-  };
-  if (rev_data != NULL) {
-    // Serial.println("communication error");
+void shot(bool is_on) {
+  if (is_on) {
+    motor_4.motor(127 * switch_state[3]);
+    delay(500);
+    motor_3.motor(127 * switch_state[2]);
   } else {
-    if (rev_data[0] == 255) {
-      byte val = rev_data[data_len - 1];
-      for (int i = 0; i < 4; i++) {
-        motor_direction[3 - i] = (val) % 2;
-        val /= 2;
-      }
-    }
+    motor_3.motor(0);
+    motor_4.motor(0);
   }
 }
 

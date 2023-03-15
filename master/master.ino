@@ -34,11 +34,9 @@ bool motor_direction[4] = {
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
 
 void emergency_stop();
-void set_motor_dir();
+// void set_motor_dir();
 void motor_control(int, int, int);
-bool data_send(byte *);
-byte *data_receive();
-void send_demo();
+void data_send(bool *);
 void receive_demo();
 void servo_atatach();
 void servo_detach();
@@ -68,9 +66,10 @@ bool old_circle = 0;
 bool old_cross = 0;
 bool old_r = 0;
 bool old_l = 0;
+bool old_data[8];
+
+
 void loop() {
-  while (Serial_hd.available())
-    Serial_hd.read();
   while (PS4.isConnected()) {
     delay(10);
     if (PS4.Square()) {  //緊急停止
@@ -79,7 +78,7 @@ void loop() {
       Serial.println("recovered");
       return;
     } else {
-      set_motor_dir();
+      // set_motor_dir();
       motor_control(PS4.LStickY(), PS4.LStickX(), PS4.RStickX());
       if (old_circle != PS4.Circle()) shot_state = 1 - shot_state;
       if (old_up != PS4.Up()) arm_state = 1 - arm_state;
@@ -92,16 +91,23 @@ void loop() {
       old_l = PS4.Left();
       old_r = PS4.Right();
 
-      byte send_data[8] = {
-        254, PS4.L1(), (bool)PS4.L2(), PS4.R1(), (bool)PS4.R2(), arm_state, PS4.Triangle(), shot_state
+      bool send_data[8] = {
+        1, PS4.L1(), (bool)PS4.L2(), PS4.R1(), (bool)PS4.R2(), arm_state, PS4.Triangle(), shot_state
       };
-
-      Serial.print("sending data  ");
+      bool send_flag = 0;
       for (byte i = 0; i < 8; i++) {
-        Serial.printf("%d:", send_data[i]);
+        if (send_data[i] != old_data[i]) send_flag = 1;
       }
-      data_send(send_data);
-      Serial.println();
+      if (send_flag) {
+        Serial.print("sending data  ");
+        for (byte i = 0; i < 8; i++) {
+          Serial.printf("%d:", send_data[i]);
+        }
+        data_send(send_data);
+        Serial.println();
+      }
+
+      memcpy(old_data, send_data, 8);
 
       if (old_servo_state != servo_state) {
         if (servo_state) servo_open();
@@ -119,7 +125,7 @@ void loop() {
 
 
 void emergency_stop() {
-  byte send_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  bool send_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
   data_send(send_data);
   digitalWrite(buzzer_pin, 1);  //ブザーオン
   motor_control(0, 0, 0);
