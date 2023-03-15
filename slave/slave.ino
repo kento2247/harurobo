@@ -18,24 +18,57 @@ CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
 #define bulve_1 12
 #define bulve_2 13
 
+#define data_len 8
 int state_pin[8] = { 25, 33, 32, 35, 34, 26, 27, 14 };
-
-void motor_control(int, int, int);
-void get_switch_state();
 bool motor_direction[4] = {
   0, 0, 0, 0
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
 bool switch_state[8];
 
+void get_switch_state();
+void set_motor_dir();
+void motor_control(int, int, int);
+bool data_send(byte *);
+byte *data_receive();
+
+
 void setup() {
   Serial.begin(115200);  // デバック用
-  Serial_hd.begin(9600);
+  Serial_hd.begin(115200);
   for (int i = 0; i < 8; i++) {
     pinMode(state_pin[i], INPUT_PULLUP);
   }
+  pinMode(bulve_1, OUTPUT);
+  pinMode(bulve_2, OUTPUT);
 }
 
 void loop() {
+  get_switch_state();
+  byte switch_val;
+  byte num_base = 1;
+  for (byte i = 0; i < 8; i++) {
+    switch_val += num_base * switch_state[i];
+    num_base *= 2;
+  }
+  byte send_data[data_len];
+  send_data[0] = 255; //motor_dir
+  send_data[data_len - 1] = switch_val; //motor_dir
+  bool result = data_send(send_data);
+  if (result) Serial.println("Send success!!!");
+  else Serial.println("failed");
+
+  byte rev_data=data_receive();
+  Serial.print()
+
+  motor_1.motor(127 * switch_state[0]);
+  motor_2.motor(127 * switch_state[1]);
+  motor_3.motor(127 * switch_state[2]);
+  motor_4.motor(127 * switch_state[3]);
+  digitalWrite(bulve_1, switch_state[4]);
+  digitalWrite(bulve_2, switch_state[5]);
+  return;
+
+
   if (Serial_hd.available()) {
     String str = Serial_hd.readStringUntil('\n');
     Serial.printf("receive : %s\n", str);
@@ -44,10 +77,10 @@ void loop() {
     Serial.println("message sent");
     Serial_hd.println("hello\n");
     delay(1000);
-//    Serial.printf("connection status=%d\n", Serial_hd.available());
-//    get_switch_state();
+    //    Serial.printf("connection status=%d\n", Serial_hd.available());
+    //    get_switch_state();
   }
-//  delay(500);
+  //  delay(500);
 }
 
 void get_switch_state() {
@@ -57,90 +90,4 @@ void get_switch_state() {
     Serial.printf("%d:", switch_state[i]);
   }
   Serial.println("");
-}
-
-void motor_control(int LY, int LX, int R_X) {
-  double rad = atan2(LY, LX);
-  double len = sqrt(LX * LX + LY * LY);  // 0~127
-  if (len > 127) len = 127;
-  int m1_speed = ((motor_direction[0] * 2 - 1) * cos(rad + PI / 4) * len);
-  int m2_speed = ((motor_direction[1] * 2 - 1) * sin(rad + PI / 4) * len);
-  int m3_speed = ((motor_direction[2] * 2 - 1) * m2_speed);
-  int m4_speed = ((motor_direction[3] * 2 - 1) * m1_speed);
-
-  int motor_speed[4] = { m1_speed, m2_speed, m3_speed, m4_speed };
-  int turn = R_X;  // 方向転換用
-  int turn_step = 0;
-  if (turn != 0) {
-    if (turn > 0)
-      turn_step = 1;
-    else
-      turn_step = -1;
-    bool escape_flag = 0;
-    while (1) {
-      if (turn == 0) break;
-      for (byte i = 0; i < 4; i++) {
-        if (abs(motor_speed[i]) >= 127) {
-          escape_flag = 1;
-          break;
-        }
-        motor_speed[i] -= turn_step;
-      }
-      if (escape_flag) break;
-      m1_speed = motor_speed[0];
-      m2_speed = motor_speed[1];
-      m3_speed = motor_speed[2];
-      m4_speed = motor_speed[3];
-      turn -= turn_step;
-    }
-  }
-
-  motor_1.motor(m1_speed);
-  motor_2.motor(m2_speed);
-  motor_3.motor(m3_speed);
-  motor_4.motor(m4_speed);
-}
-bool data_send(byte *data) {
-  int state = 1;
-  byte timeout_count = 10;
-  while (state != 3) {
-    Serial.flush();
-    Serial.write(state);
-    Serial.write(data, data_len);
-    while (!Serial_hd.available())
-      ;
-    state = 3;  //ok
-    timeout_count--;
-    for (int i = 0; i < data_len; i++) {
-      if (data[i] != Serial_hd.read()) {
-        state = 2;  //re
-        while (Serial_hd.available()) Serial_hd.read();
-        break;
-      }
-    }
-    if (state == 3) return 1;
-    if (timeout_count == 0) return 0;
-  }
-}
-
-byte *data_receive() {
-  int state = 1;
-  byte timeout_count = 10;
-  byte data[data_len];
-
-  while (state != 3) {
-    state = Serial_hd.read();
-    Serial.printf("received(%d) : ",state);
-    for (int i = 0; i < data_len; i++) {
-      data[i] = Serial_hd.read();
-      Serial.printf("%d : ",data[i]);
-      Serial_hd.write(data[i]);
-    };
-    Serial.println();
-
-    state = Serial_hd.read();
-    timeout_count--;
-    if (state == 3) return data;
-    if (timeout_count == 0) return NULL;
-  }
 }
