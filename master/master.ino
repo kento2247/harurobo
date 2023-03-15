@@ -53,10 +53,12 @@ void setup() {
 }
 
 void loop() {
+  delay(1);
   if (PS4.isConnected()) {
     digitalWrite(buzzer_pin, 0);  //ブザーオフ
     set_motor_dir();
     motor_control(PS4.LStickY(), PS4.LStickX(), PS4.RStickX());
+    Serial.printf("%d:%d:%d:%d\n",PS4.Circle(),PS4.Cross(),PS4.Triangle(),PS4.Square());
     // int val = PS4.L2Value();
     // PS4.setRumble(val, val);
     // PS4.setLed(PS4.R2Value(), 100, 100);
@@ -66,6 +68,10 @@ void loop() {
     }
     if (PS4.Cross()) {
       PS4.setRumble(255, 255);
+      PS4.sendToController();
+    }
+    else {
+      PS4.setRumble(0, 0);
       PS4.sendToController();
     }
     if (PS4.Triangle()) {

@@ -1,5 +1,8 @@
 void set_motor_dir() {
-  byte *rev_data = data_receive();
+  // byte *rev_data = data_receive();
+  byte rev_data[8] = {
+    255, 0, 0, 0, 0, 0, 0, 15
+  };
   if (rev_data != NULL) {
     // Serial.println("communication error");
   } else {

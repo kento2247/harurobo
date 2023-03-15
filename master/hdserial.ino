@@ -7,7 +7,7 @@ bool data_send(byte *data) {
     Serial_hd.write(data, data_len);
     byte wait_timeout_count = 100;
     while (!Serial_hd.available()) {
-      delay(1);
+      delay(10);
       wait_timeout_count--;
       if (wait_timeout_count == 0) return 0;
     }
@@ -41,7 +41,7 @@ byte *data_receive() {
     };
     byte timeout_count = 100;
     while (!Serial_hd.available()) {
-      delay(1);
+      delay(10);
       timeout_count--;
       if (timeout_count == 0) return NULL;
     }
