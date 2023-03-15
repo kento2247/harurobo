@@ -8,10 +8,13 @@ void set_motor_dir() {
   } else {
     if (rev_data[0] == 255) {
       byte val = rev_data[data_len - 1];
+      Serial.printf("rev data=%d. ", val);
       for (int i = 0; i < 4; i++) {
         motor_direction[3 - i] = (val) % 2;
         val /= 2;
+        Serial.printf("%d:", motor_direction[3 - i]);
       }
+      Serial.println();
     }
   }
 }
