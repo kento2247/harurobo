@@ -30,7 +30,7 @@ CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
 #define data_len 8  //hdserialのパケット長
 
 bool motor_direction[4] = {
-  1, 1, 1, 1
+  1, 1, 0, 1
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
 
 void emergency_stop();
@@ -61,13 +61,12 @@ bool old_servo_state = 0;
 bool larm_state = 0;
 bool rarm_state = 0;
 
-bool old_up = 0;
 bool old_circle = 0;
 bool old_cross = 0;
 bool old_r = 0;
 bool old_l = 0;
 bool old_data[8];
-
+bool servo_is_open=0;
 
 void loop() {
   while (PS4.isConnected()) {
@@ -81,12 +80,12 @@ void loop() {
       // set_motor_dir();
       motor_control(PS4.LStickY(), PS4.LStickX(), PS4.RStickX());
       if (old_circle != PS4.Circle()) shot_state = 1 - shot_state;
-      if (old_up != PS4.Up()) arm_state = 1 - arm_state;
+      if (PS4.Up()) arm_state = 1;
+      else if (PS4.Down()) arm_state = 0;
       if (old_cross != PS4.Cross()) servo_state = 1 - servo_state;
       if (old_l != PS4.Left()) larm_state = 1 - larm_state;
       if (old_r != PS4.Right()) rarm_state = 1 - rarm_state;
       old_circle = PS4.Circle();
-      old_up = PS4.Up();
       old_cross = PS4.Cross();
       old_l = PS4.Left();
       old_r = PS4.Right();
@@ -109,8 +108,9 @@ void loop() {
 
       memcpy(old_data, send_data, 8);
 
-      if (old_servo_state != servo_state) {
-        if (servo_state) servo_open();
+      if (old_servo_state == 0 && servo_state == 1) {
+        servo_is_open=!servo_is_open;
+        if (servo_is_open) servo_open();
         else servo_close();
       }
       old_servo_state = servo_state;

@@ -26,9 +26,8 @@ bool motor_direction[4] = {  //switch4~7と連動
 bool switch_state[8];
 
 void shot(bool);
-void send_switch_state();
+//void send_switch_state();
 void set_motor_dir();
-void motor_control(int, int, int);
 // bool data_send(byte *);
 bool *data_receive();
 
@@ -37,22 +36,26 @@ void setup() {
   Serial.begin(115200);  // デバック用
   Serial_hd.begin(115200);
   for (int i = 0; i < 8; i++) {
-    pinMode(state_pin[i], INPUT_PULLUP);
+    if (i == 3 || i == 4)pinMode(state_pin[i], INPUT);
+    else pinMode(state_pin[i], INPUT_PULLUP);
   }
   pinMode(bulve_1, OUTPUT);
   pinMode(bulve_2, OUTPUT);
-  while(Serial_hd.available())Serial_hd.read();
+  while (Serial_hd.available())Serial_hd.read();
 }
 
 
 bool old_bulve_2 = 0;
 
 void loop() {
-  // send_switch_state();
+  //   send_switc/h_state();
   delay(10);
+  for (int i = 0; i < 8; i++) {
+    switch_state[i] = digitalRead(state_pin[i]);
+  }
   bool *rev_data = data_receive();
-  if (rev_data==NULL) return;
-  if (rev_data[0]==0) {  //emergency stop
+  if (rev_data == NULL) return;
+  if (rev_data[0] == 0) { //emergency stop
     motor_1.motor(0);
     motor_2.motor(0);
     motor_3.motor(0);
@@ -61,27 +64,27 @@ void loop() {
     while (data_receive() == NULL)
       ;
   }
-  if (rev_data[1]) motor_1.motor(127 * switch_state[0]);  //lack
+  if (rev_data[1]) motor_1.motor(32 * (2 * switch_state[0] - 1)); //lack
+  else if (rev_data[2]) motor_1.motor(-32 * (2 * switch_state[0] - 1));
   else motor_1.motor(0);
-  if (rev_data[2]) motor_1.motor(-127 * switch_state[0]);
-  else motor_1.motor(0);
-  if (rev_data[3]) motor_2.motor(127 * switch_state[0]);  //ere
-  else motor_2.motor(0);
-  if (rev_data[4]) motor_2.motor(-127 * switch_state[0]);
+
+  if (rev_data[3]) motor_2.motor(32 * (2 * switch_state[1] - 1)); //ere
+  else if (rev_data[4]) motor_2.motor(-32 * (2 * switch_state[1] - 1));
   else motor_2.motor(0);
 
-  if (rev_data[5]) digitalWrite(bulve_1, 1);  //arm deploy
-  else digitalWrite(bulve_1, 0);
+  if (rev_data[5]) digitalWrite(bulve_1, !switch_state[2]);  //arm deploy
+  else digitalWrite(bulve_1, switch_state[2] );
 
+  static bool is_bulve_open = 0;
   bool bulve_2_state = rev_data[6];
   if (old_bulve_2 == 0 && bulve_2_state == 1) {
-    digitalWrite(bulve_2, 0);
-    delay(500);
-    digitalWrite(bulve_2, 1);
-  } else digitalWrite(bulve_2, 1);
+    is_bulve_open = !is_bulve_open;
+  }
+  digitalWrite(bulve_2, is_bulve_open);
   old_bulve_2 = bulve_2_state;
 
-  shot(rev_data[7]);
+  bool shot_state = rev_data[7];
+  shot(shot_state);
 }
 
 // void send_switch_state() {

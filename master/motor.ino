@@ -48,8 +48,8 @@ void motor_control(int LY, int LX, int R_X) {
     }
   }
 
-  motor_1.motor(m1_speed);
-  motor_2.motor(m2_speed);
-  motor_3.motor(m3_speed);
-  motor_4.motor(m4_speed);
+  motor_1.motor(m1_speed/2);
+  motor_2.motor(m2_speed/2);
+  motor_3.motor(m3_speed/2);
+  motor_4.motor(m4_speed/2);
 }
