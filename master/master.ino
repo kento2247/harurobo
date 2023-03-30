@@ -30,7 +30,7 @@ CytronMD motor_4 = CytronMD(pwm_4, dir_4, 4);
 #define data_len 8  //hdserialのパケット長
 
 bool motor_direction[4] = {
-  1, 1, 0, 1
+  1, 1, 1, 1
 };  // 足回り用モーターの回転方向, 0=reverse, 1=straight
 
 void emergency_stop();

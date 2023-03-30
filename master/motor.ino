@@ -16,10 +16,10 @@ void motor_control(int LY, int LX, int R_X) {
   double rad = atan2(LY, LX);
   double len = sqrt(LX * LX + LY * LY);  // 0~127
   if (len > 127) len = 127;
-  int m1_speed = ((motor_direction[0] * 2 - 1) * cos(rad + PI / 4) * len);
-  int m2_speed = ((motor_direction[1] * 2 - 1) * sin(rad + PI / 4) * len);
-  int m3_speed = ((motor_direction[2] * 2 - 1) * m2_speed);
-  int m4_speed = ((motor_direction[3] * 2 - 1) * m1_speed);
+  int m1_speed = (cos(rad + PI / 4) * len);
+  int m2_speed = (sin(rad + PI / 4) * len);
+  int m3_speed =  m2_speed;
+  int m4_speed =  m1_speed;
 
   int motor_speed[4] = { m1_speed, m2_speed, m3_speed, m4_speed };
   int turn = R_X;  // 方向転換用
@@ -37,7 +37,8 @@ void motor_control(int LY, int LX, int R_X) {
           escape_flag = 1;
           break;
         }
-        motor_speed[i] -= turn_step;
+        if(i==0||i==2)motor_speed[i] += turn_step;
+        else motor_speed[i] -= turn_step;
       }
       if (escape_flag) break;
       m1_speed = motor_speed[0];
@@ -48,8 +49,10 @@ void motor_control(int LY, int LX, int R_X) {
     }
   }
 
-  motor_1.motor(m1_speed/2);
-  motor_2.motor(m2_speed/2);
-  motor_3.motor(m3_speed/2);
-  motor_4.motor(m4_speed/2);
+  motor_1.motor((motor_direction[0] * 2 - 1) *m1_speed/2);
+  motor_2.motor((motor_direction[1] * 2 - 1) *m2_speed/2);
+  motor_3.motor((motor_direction[2] * 2 - 1) *m3_speed/2);
+  motor_4.motor((motor_direction[3] * 2 - 1) *m4_speed/2);
+
+  Serial.printf("%d:%d:%d  >  %d:%d:%d:%d\n",LY,LX,R_X,m1_speed,m2_speed,m3_speed,m4_speed);
 }
